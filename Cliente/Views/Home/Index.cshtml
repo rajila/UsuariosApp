@@ -1,0 +1,172 @@
+﻿@{
+    ViewData["Title"] = "Listado de Usuarios";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome!!</h1>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card">
+            <div class="card-header">Usuarios</div>
+            <div class="card-body">
+
+                <button class="btn btn-success" id="btnNew">Nuevo</button>
+
+                <div id="form-new-usuario" class="form-new-usuario form-hidden">
+                    <fieldset>
+                        <legend>Nuevo usuario</legend>
+                        <div>
+                            <label>Email</label>
+                            <input type="text" id="email" placeholder="Ingresar email" />
+                        </div>
+                        <div>
+                            <label>FullName</label>
+                            <input type="text" id="fullname" placeholder="Ingresar nombre completo" />
+                        </div>
+                        <div>
+                            <label>Password</label>
+                            <input type="password" id="password" placeholder="Ingresar password" />
+                        </div>
+                        <div>
+                            <input type="button" id="newUsuario" class="btn btn-primary btn-sm btn-save" value="Guardar" />
+                        </div>
+                    </fieldset>
+                </div>
+
+                <hr />
+
+                <table class="table table-striped" id="tbUsuario">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Full Name</th>
+                            <th>Password</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const UserType = {
+            Id: 0,
+            FullName: "",
+            Password: "",
+            Email: ""
+        }
+
+        $(document).ready(() => {
+            let _userLogin = localStorage.getItem("userlogin")
+            if (!_userLogin) window.location.href = "/";
+            else drawUsers()
+        })
+
+        function resetForm() {
+            $(`#fullname`).val("")
+            $(`#password`).val("")
+            $(`#email`).val("")
+            $("#form-new-usuario").removeClass("form-show").addClass("form-hidden")
+        }
+
+        function drawUsers() {
+            // Call
+            fetch("Home/GetAll").then((response) => {
+                return response.ok ? response.json() : Promise.reject(response)
+            }).then((dataJson) => {
+                $("#tbUsuario tbody").html("")
+                dataJson.forEach((item) => {
+                    // Inputs
+                    let _fullName = $("<input>").attr('type', 'text').attr('id', `row-fn-${item.id}`).addClass("input-fn").val(item.fullName)
+                    let _password = $("<input>").attr('type', 'password').attr('id', `row-pw-${item.id}`).addClass("input-pw").val(item.password)
+                    let _email = $("<input>").attr('type', 'text').attr('id', `row-e-${item.id}`).addClass("input-e").val(item.email)
+
+                    // Buttons
+                    let _btnSave = $("<button>").addClass("btn btn-primary btn-sm me-2 btn-save").data("id", item.id).text("Guardar")
+                    let _btnDelete = $("<button>").addClass("btn btn-danger btn-sm me-2 btn-delete").data("id", item.id).text("Eliminar")
+
+                    $("#tbUsuario tbody").append(
+                        $("<tr>").append(
+                            $("<td>").text(item.id),
+                            $("<td>").append(_email),
+                            $("<td>").append(_fullName),
+                            $("<td>").append(_password),
+                            $("<td>").append(_btnSave, _btnDelete)
+                        )
+                    )
+                })
+            })
+        }
+
+        // Update/Insert registro en DB
+        $(".card .card-body").on("click", ".btn-save", function () {
+            let _idUser = $(this).data("id") || 0
+            
+            let _dataFullNameVal = _idUser === 0 ? $(`#fullname`).val() : $(`#row-fn-${_idUser}`).val()
+            let _dataPasswordVal = _idUser === 0 ? $(`#password`).val() : $(`#row-pw-${_idUser}`).val()
+            let _dataEmailVal = _idUser === 0 ? $(`#email`).val() : $(`#row-e-${_idUser}`).val()
+
+            UserType.Id = _idUser
+            UserType.FullName = _dataFullNameVal
+            UserType.Password = _dataPasswordVal
+            UserType.Email = _dataEmailVal
+
+            const _path = _idUser === 0 ? "Home/Insert" : "Home/Update"
+            const _method = _idUser === 0 ? "POST" : "PUT"
+
+            fetch(_path, {
+                method: _method,
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify(UserType)
+            })
+            .then((response) => {
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then((dataJson) => {
+                dataJson.state && drawUsers()
+                dataJson.state && resetForm()
+                dataJson.state && alert("Se ha guardado exitosamente!!")
+                !dataJson.state && alert("Error, intentelo más tarde!!")
+            })
+            .catch( err => { alert("Error, intentelo más tarde!!") } )
+        })
+
+        // Delete registro en DB
+        $(".card .card-body").on("click", ".btn-delete", function () {
+            let _idUser = $(this).data("id") || 0
+
+            let _resultUser = window.confirm("¿Desea eliminar el contacto?")
+            if ( !_resultUser ) return
+
+            fetch(`Home/Delete?id=${_idUser}`, {
+                method: 'DELETE'
+            })
+            .then((response) => {
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then((dataJson) => {
+                dataJson.state && drawUsers()
+                !dataJson.state && alert("Error, intentelo más tarde!!")
+            })
+            .catch(err => { alert("Error, intentelo más tarde!!") })
+        })
+
+        // Agrega un nuevo usuario
+        $("#btnNew").click(() => {
+            let _elFormNew = $("#form-new-usuario")
+            if (_elFormNew.attr("class").includes("form-hidden")) _elFormNew.removeClass("form-hidden").addClass("form-show")
+            else if ((_elFormNew.attr("class").includes("form-show"))) _elFormNew.removeClass("form-show").addClass("form-hidden")
+        })
+    </script>
+}

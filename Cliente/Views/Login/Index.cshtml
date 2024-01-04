@@ -1,0 +1,67 @@
+﻿@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="card">
+            <div class="card-header">Login</div>
+            <div class="card-body">
+                <div id="form-login" class="form-login">
+                    <div>
+                        <label>Email</label>
+                        <input type="text" id="email" placeholder="Ingresar email" />
+                    </div>
+                    <div>
+                        <label>Password</label>
+                        <input type="password" id="password" placeholder="Ingresar password" />
+                    </div>
+                    <div>
+                        <input type="submit" id="newUsuario" class="btn btn-primary btn-sm btn-login" value="Login" />
+                    </div>
+                </div> 
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const AuthType = {
+            Password: "",
+            Email: ""
+        }
+
+        // Auth Login en DB
+        $(".card .card-body").on("click", ".btn-login", function () {
+            
+            let _dataPasswordVal = $(`#password`).val()
+            let _dataEmailVal = $(`#email`).val()
+
+            AuthType.Password = _dataPasswordVal
+            AuthType.Email = _dataEmailVal
+
+            fetch("Login/Auth", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify(AuthType)
+            })
+            .then((response) => {
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then((dataJson) => {
+                if (dataJson.state) {
+                    let _dataUser = dataJson.userlogin
+                    localStorage.setItem("userlogin", JSON.stringify(_dataUser))
+                    window.location.href = "/Home";
+                } else {
+                    alert("Verificar correo y/o contraseña XD!!")
+                    localStorage.clear();
+                }
+            })
+            .catch( err => { alert("Error, intentelo más tarde!!") } )
+        })
+    </script>
+}
